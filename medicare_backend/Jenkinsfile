@@ -2,14 +2,13 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_CREDENTIALS = credentials('docker-hub-credentials-id')
         AWS_CREDENTIALS = credentials('aws-credentials-id')
     }
 
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-repo/spring-boot-app.git'
+                git branch: 'main', url: 'https://github.com/your-repo/medicare_backend.git'
             }
         }
 
@@ -28,9 +27,9 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 script {
-                    docker.build('your-dockerhub-username/spring-boot-app:latest')
-                    docker.withRegistry('https://registry.hub.docker.com', 'DOCKER_HUB_CREDENTIALS') {
-                        docker.image('your-dockerhub-username/spring-boot-app:latest').push()
+                    docker.build('your-dockerhub-username/medicare-backend:latest')
+                    docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials-id') {
+                        docker.image('your-dockerhub-username/medicare-backend:latest').push()
                     }
                 }
             }
@@ -39,10 +38,12 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    sh 'aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin your-account-id.dkr.ecr.your-region.amazonaws.com'
-                    sh 'docker tag spring-boot-app:latest your-account-id.dkr.ecr.your-region.amazonaws.com/spring-boot-app:latest'
-                    sh 'docker push your-account-id.dkr.ecr.your-region.amazonaws.com/spring-boot-app:latest'
-                    sh 'aws ecs update-service --cluster your-cluster --service your-service --force-new-deployment'
+                    withCredentials([string(credentialsId: 'aws-credentials-id', variable: 'AWS_CREDS')]) {
+                        sh 'aws ecr get-login-password --region your-region | docker login --username AWS --password-stdin your-account-id.dkr.ecr.your-region.amazonaws.com'
+                        sh 'docker tag medicare-backend:latest your-account-id.dkr.ecr.your-region.amazonaws.com/medicare-backend:latest'
+                        sh 'docker push your-account-id.dkr.ecr.your-region.amazonaws.com/medicare-backend:latest'
+                        sh 'aws ecs update-service --cluster your-cluster --service your-service --force-new-deployment'
+                    }
                 }
             }
         }
@@ -55,3 +56,4 @@ pipeline {
         }
     }
 }
+
